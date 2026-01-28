@@ -8,10 +8,10 @@ Lade für alle Quellen, die du findest, immer auch das PDF herunter. So kannst d
 TODO: Link zu Youtube Video einfügen nachdem Siamak das JabRef Tutorial Video hochgeladen hat. 
 
 \subsection{Grafiken}
-Falls du matplotlib benutzen willst, dann ist in \texttt{/software/matplotlib} ein Script was Konstanten hat die genau für die Seitenabstände und die Schriftgröße dieses Dokuments passen. \Cref{fig:test_figure} zeigt ein Beispiel. 
+Falls du matplotlib benutzen willst, findest du in \texttt{/software/matplotlib} ein Skript, das Konstanten definiert, die genau auf die Seitenbreite und Schriftgrößen dieses Dokuments abgestimmt sind. Dieses Dokument hat eine Textbreite von \the\linewidth, und das Skript definiert die entsprechende Breite in Inches. \Cref{fig:test_figure} zeigt ein Beispiel.
 
 \label{subsec:grafiken}
-  \begin{figure}[H]                                       
+  \begin{figure}[htpb]                                       
       \centering
       \includesvg{figures/test_figure.svg}
       \caption{Beispiel Grafik, mit änlicher Schriftgröße zu dem Text.}
