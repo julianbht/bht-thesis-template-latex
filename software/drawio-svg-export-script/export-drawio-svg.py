@@ -1,24 +1,45 @@
 #!/usr/bin/env python3
+"""
+Export a .drawio file to SVGs (one per tab, named after tab titles).
+Incremental by default: only exports tabs whose content changed.
+Automatically pulls, commits, and pushes changes.
+
+Usage:
+    python export-drawio-svg.py <path-to-drawio-file>
+"""
 from __future__ import annotations
 
-import os, re, sys, json, hashlib, subprocess, xml.etree.ElementTree as ET
+import os
+import re
+import sys
+import json
+import hashlib
+import subprocess
+import xml.etree.ElementTree as ET
+from pathlib import Path
 from typing import List, Optional, Tuple, Dict
-import typer
 
-app = typer.Typer(add_completion=False, help="""
-Export a .drawio file to SVGs (one per tab, named after tab titles),
-then optionally git add/commit the SVGs + the .drawio file, and git push.
+# =============================================================================
+# Configuration
+# =============================================================================
+SCRIPT_DIR = Path(__file__).parent.absolute()
+MANIFEST_DIR = SCRIPT_DIR  # Manifest lives in this directory
+DEFAULT_OUTPUT_DIR = SCRIPT_DIR.parent.parent / "figures"  # ../../figures
+GIT_REMOTE = "origin"
+GIT_COMMIT_MESSAGE = "Update diagrams"
 
-Now incremental by default: only export tabs whose content (or filename) changed.
-""")
-
-# ---------------- helpers ----------------
+# =============================================================================
+# Helper Functions
+# =============================================================================
 def sanitize(name: str) -> str:
+    """Sanitize filename by removing invalid characters."""
     name = re.sub(r'[\\/:"*?<>|]+', '_', name)
     name = re.sub(r'\s+', ' ', name).strip()
     return name or "Untitled"
 
+
 def get_page_elements(path: str) -> List[ET.Element]:
+    """Extract diagram pages from .drawio file."""
     try:
         tree = ET.parse(path)
         root = tree.getroot()
@@ -26,22 +47,11 @@ def get_page_elements(path: str) -> List[ET.Element]:
     except ET.ParseError:
         return []
 
-def get_page_titles(path: str) -> List[str]:
-    ds = get_page_elements(path)
-    if not ds:
-        return ["Page 1"]
-    titles = []
-    for i, d in enumerate(ds):
-        titles.append(d.attrib.get("name") or f"Page {i+1}")
-    return titles
 
-def page_hash(e: ET.Element) -> str:
-    # Hash the serialized element text + attributes (stable enough for changes)
+def page_hash(element: ET.Element) -> str:
+    """Compute hash of page content to detect changes."""
     h = hashlib.sha1()
-    # include attributes deterministically
-    attrs = "|".join(f"{k}={e.attrib.get(k,'')}" for k in sorted(e.attrib))
-    h.update(attrs.encode("utf-8", errors="ignore"))
-    # include tag text and tail plus children serialized
+
     def walk(node: ET.Element):
         h.update((node.tag or "").encode("utf-8", errors="ignore"))
         for k in sorted(node.attrib):
@@ -49,97 +59,57 @@ def page_hash(e: ET.Element) -> str:
             h.update(str(node.attrib[k]).encode("utf-8", errors="ignore"))
         if node.text:
             h.update(node.text.encode("utf-8", errors="ignore"))
-        for c in list(node):
-            walk(c)
+        for child in list(node):
+            walk(child)
         if node.tail:
             h.update(node.tail.encode("utf-8", errors="ignore"))
-    walk(e)
+
+    walk(element)
     return h.hexdigest()
 
-def git_pull(repo_root: str, remote: str, branch: Optional[str]) -> None:
-    if not branch:
-        branch = current_branch(repo_root)
-    if not branch:
-        typer.secho("Could not determine branch; skipping pull.", fg=typer.colors.YELLOW)
-        return
-    try:
-        typer.echo(f"Pulling latest changes from {remote}/{branch} ...")
-        run(["git", "-C", repo_root, "pull", remote, branch], check=True)
-        typer.secho("Pull completed.", fg=typer.colors.GREEN)
-    except subprocess.CalledProcessError as e:
-        typer.secho(f"Pull failed: {e}", fg=typer.colors.RED)
-        raise typer.Exit(code=4)
 
+def run_cmd(cmd: List[str], cwd: Optional[str] = None, capture: bool = False) -> subprocess.CompletedProcess:
+    """Run shell command."""
+    return subprocess.run(
+        cmd,
+        check=True,
+        capture_output=capture,
+        text=True,
+        cwd=cwd
+    )
 
-def run(cmd: list[str], check=True, capture_output=False, cwd=None) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, check=check, capture_output=capture_output, text=True, cwd=cwd)
 
 def find_git_root(start_dir: str) -> Optional[str]:
+    """Find git repository root."""
     try:
-        res = run(["git", "rev-parse", "--show-toplevel"], capture_output=True, cwd=start_dir)
-        return res.stdout.strip()
+        result = run_cmd(["git", "rev-parse", "--show-toplevel"], cwd=start_dir, capture=True)
+        return result.stdout.strip()
     except (subprocess.CalledProcessError, FileNotFoundError):
         return None
 
+
 def current_branch(repo_root: str) -> Optional[str]:
+    """Get current git branch name."""
     try:
-        res = run(["git", "-C", repo_root, "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True)
-        b = res.stdout.strip()
-        return b if b and b != "HEAD" else None
+        result = run_cmd(["git", "-C", repo_root, "rev-parse", "--abbrev-ref", "HEAD"], capture=True)
+        branch = result.stdout.strip()
+        return branch if branch and branch != "HEAD" else None
     except subprocess.CalledProcessError:
         return None
 
-def git_add_and_commit(paths: List[str], repo_root: str, message: str, drawio_file: Optional[str] = None) -> bool:
-    # stage only the exported files (+ optional .drawio)
-    if not paths and not drawio_file:
-        return False
-    rel: List[str] = [os.path.relpath(p, repo_root) for p in paths]
-    if drawio_file:
-        rel.append(os.path.relpath(drawio_file, repo_root))
-    try:
-        run(["git", "-C", repo_root, "add", "--"] + rel)
-        cp = subprocess.run(["git", "-C", repo_root, "commit", "-m", message])
-        if cp.returncode != 0:
-            typer.secho("Nothing to commit (no changes).", fg=typer.colors.YELLOW)
-            return False
-        typer.secho(f"Committed: {message}", fg=typer.colors.GREEN)
-        return True
-    except FileNotFoundError:
-        typer.secho("Git not found; skipping commit.", fg=typer.colors.YELLOW)
-        return False
-    except subprocess.CalledProcessError as e:
-        typer.secho(f"Git error; skipping commit: {e}", fg=typer.colors.YELLOW)
-        return False
 
-def git_push(repo_root: str, remote: str, branch: Optional[str]) -> None:
-    if not branch:
-        branch = current_branch(repo_root)
-    if not branch:
-        typer.secho("Could not determine branch; skipping push.", fg=typer.colors.YELLOW)
-        return
-    has_upstream = True
-    try:
-        run(["git", "-C", repo_root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], capture_output=True)
-    except subprocess.CalledProcessError:
-        has_upstream = False
-    try:
-        if has_upstream:
-            typer.echo(f"Pushing to {remote} {branch} ...")
-            run(["git", "-C", repo_root, "push", remote, branch], check=True)
-        else:
-            typer.echo(f"No upstream set. Pushing with upstream: {remote} {branch} ...")
-            run(["git", "-C", repo_root, "push", "-u", remote, branch], check=True)
-        typer.secho("Push completed.", fg=typer.colors.GREEN)
-    except subprocess.CalledProcessError as e:
-        typer.secho(f"Push failed: {e}", fg=typer.colors.RED)
+# =============================================================================
+# Manifest Management
+# =============================================================================
+def manifest_path(input_file: Path) -> Path:
+    """Get path to manifest file for given .drawio file."""
+    base = input_file.stem
+    return MANIFEST_DIR / f".drawio-export.{base}.json"
 
-# ---------- incremental export support ----------
-def manifest_path(outdir: str, input_path: str) -> str:
-    base = os.path.splitext(os.path.basename(input_path))[0]
-    return os.path.join(outdir, f".drawio-export.{base}.json")
 
-def load_manifest(path: str) -> Dict:
-    if not os.path.isfile(path):
+def load_manifest(path: Path) -> Dict:
+    """Load manifest from disk."""
+    if not path.is_file():
         return {}
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -147,194 +117,241 @@ def load_manifest(path: str) -> Dict:
     except Exception:
         return {}
 
-def save_manifest(path: str, data: Dict) -> None:
-    tmp = path + ".tmp"
+
+def save_manifest(path: Path, data: Dict) -> None:
+    """Save manifest to disk atomically."""
+    tmp = path.with_suffix(".json.tmp")
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, sort_keys=True)
-    os.replace(tmp, path)
+    tmp.replace(path)
 
-def plan_pages(input_path: str, outdir: str) -> Tuple[List[Tuple[int, str]], Dict[int, str]]:
+
+# =============================================================================
+# Export Planning
+# =============================================================================
+def plan_pages(input_file: Path) -> Tuple[List[Tuple[int, str]], Dict[int, str]]:
     """
+    Determine filenames for each page and compute content hashes.
     Returns:
-      - file_specs: list of (page_index, filename) after de-dup
-      - page_hashes: dict page_index -> sha1
+        - file_specs: list of (page_index, filename)
+        - page_hashes: dict of page_index -> content_hash
     """
-    diagrams = get_page_elements(input_path)
-    titles = [ (d.attrib.get("name") or f"Page {i+1}") for i, d in enumerate(diagrams) ] or ["Page 1"]
-    os.makedirs(outdir, exist_ok=True)
+    diagrams = get_page_elements(str(input_file))
+    titles = [(d.attrib.get("name") or f"Page {i+1}") for i, d in enumerate(diagrams)] or ["Page 1"]
 
-    # disambiguate duplicates
-    seen: dict[str, int] = {}
+    # Deduplicate filenames
+    seen: Dict[str, int] = {}
     file_specs: List[Tuple[int, str]] = []
-    for idx, t in enumerate(titles):
-        base = sanitize(t)
-        n = base
-        count = seen.get(base, 0)
-        while n in seen:
-            count += 1
-            n = f"{base} ({count})"
-        seen[base] = count
-        seen[n] = 0
-        file_specs.append((idx, n + ".svg"))
 
-    # compute hashes
+    for idx, title in enumerate(titles):
+        base = sanitize(title)
+        name = base
+        count = seen.get(base, 0)
+
+        while name in seen:
+            count += 1
+            name = f"{base} ({count})"
+
+        seen[base] = count
+        seen[name] = 0
+        file_specs.append((idx, name + ".svg"))
+
+    # Compute content hashes
     hashes: Dict[int, str] = {}
     if diagrams:
-        for i, e in enumerate(diagrams):
-            hashes[i] = page_hash(e)
+        for i, element in enumerate(diagrams):
+            hashes[i] = page_hash(element)
     else:
-        # fallback single page (unknown content)
+        # Fallback for single-page documents
         hashes[0] = hashlib.sha1(b"single-page-fallback").hexdigest()
 
     return file_specs, hashes
 
-def incremental_selection(input_path: str, outdir: str, full: bool, clean: bool) -> Tuple[List[Tuple[int, str]], List[str], Dict]:
+
+def determine_exports(input_file: Path, output_dir: Path) -> Tuple[List[Tuple[int, str]], Dict]:
     """
-    Decide which pages to export and which stale files to remove.
+    Determine which pages need to be exported based on manifest.
     Returns:
-      - to_export: list of (page_index, filename)
-      - stale_files: list of paths to delete (if clean=True)
-      - new_manifest: dict for saving
+        - to_export: list of (page_index, filename) that need export
+        - new_manifest: updated manifest data
     """
-    file_specs, hashes = plan_pages(input_path, outdir)
-    mf_path = manifest_path(outdir, input_path)
-    prev = load_manifest(mf_path)
-    prev_pages: Dict[str, Dict] = prev.get("pages", {})  # key: str(page_index) from last run
+    file_specs, hashes = plan_pages(input_file)
+    mf_path = manifest_path(input_file)
+    prev_manifest = load_manifest(mf_path)
+    prev_pages: Dict[str, Dict] = prev_manifest.get("pages", {})
 
     to_export: List[Tuple[int, str]] = []
-    # build reverse map of previous filenames to index to detect renames
-    prev_by_index = {int(k): v for k, v in prev_pages.items()} if prev_pages else {}
 
-    for idx, fname in file_specs:
-        h = hashes[idx]
-        prev_entry = prev_by_index.get(idx)
-        if full or not prev_entry:
-            to_export.append((idx, fname))
+    for idx, filename in file_specs:
+        current_hash = hashes[idx]
+        prev_entry = prev_pages.get(str(idx))
+        out_path = output_dir / filename
+
+        # Export if: new page, content changed, file missing, or filename changed
+        if not prev_entry:
+            to_export.append((idx, filename))
         else:
             prev_hash = prev_entry.get("hash")
-            prev_fname = prev_entry.get("filename")
-            # export if content changed, file missing, or target filename changed
-            out_path = os.path.join(outdir, fname)
-            if (h != prev_hash) or (fname != prev_fname) or (not os.path.isfile(out_path)):
-                to_export.append((idx, fname))
+            prev_filename = prev_entry.get("filename")
 
-    # stale files: any previous filename whose index no longer exists OR whose filename changed
-    stale_files: List[str] = []
-    if clean and prev_pages:
-        current_indices = set(i for i, _ in file_specs)
-        current_filenames = set(os.path.join(outdir, f) for _, f in file_specs)
-        for k, v in prev_by_index.items():
-            old_path = os.path.join(outdir, v.get("filename", ""))
-            if (k not in current_indices) or (old_path not in current_filenames):
-                if os.path.isfile(old_path):
-                    stale_files.append(old_path)
+            if (current_hash != prev_hash or
+                filename != prev_filename or
+                not out_path.is_file()):
+                to_export.append((idx, filename))
 
-    # new manifest content
-    new_pages = { str(idx): {"filename": fname, "hash": hashes[idx]} for idx, fname in file_specs }
+    # Build new manifest
+    new_pages = {
+        str(idx): {"filename": fname, "hash": hashes[idx]}
+        for idx, fname in file_specs
+    }
     new_manifest = {
-        "input": os.path.abspath(input_path),
-        "outdir": os.path.abspath(outdir),
+        "input": str(input_file.absolute()),
+        "outdir": str(output_dir.absolute()),
         "pages": new_pages,
         "version": 1
     }
-    return to_export, stale_files, new_manifest
 
-def export_pages(input_path: str, outdir: str, dry_run: bool, full: bool, clean: bool) -> List[str]:
-    os.makedirs(outdir, exist_ok=True)
-    typer.echo(f"Export directory: {outdir}")
+    return to_export, new_manifest
 
-    to_export, stale, new_manifest = incremental_selection(input_path, outdir, full=full, clean=clean)
 
-    if stale:
-        for p in stale:
-            if dry_run:
-                typer.echo(f"DRY-RUN: rm {p}")
-            else:
-                try:
-                    os.remove(p)
-                    typer.secho(f"🗑  Removed stale: {os.path.basename(p)}", fg=typer.colors.YELLOW)
-                except OSError as e:
-                    typer.secho(f"Could not remove {p}: {e}", fg=typer.colors.RED)
+# =============================================================================
+# Export Execution
+# =============================================================================
+def export_svg(input_file: Path, page_index: int, output_file: Path) -> None:
+    """Export a single page from .drawio file to SVG."""
+    # draw.io uses 1-based page indexing
+    cmd = ["drawio", "-x", "-f", "svg", "-p", str(page_index + 1), "-o", str(output_file), str(input_file)]
+    run_cmd(cmd)
 
-    exported: List[str] = []
+
+def do_export(input_file: Path, output_dir: Path) -> List[Path]:
+    """
+    Main export function. Returns list of exported file paths.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    to_export, new_manifest = determine_exports(input_file, output_dir)
+
     if not to_export:
-        typer.secho("No changes detected; nothing to export.", fg=typer.colors.CYAN)
-    for page_idx, filename in to_export:
-        out_path = os.path.join(outdir, filename)
-        # draw.io page index is 1-based
-        cmd = ["drawio", "-x", "-f", "svg", "-p", str(page_idx + 1), "-o", out_path, input_path]
-        if dry_run:
-            typer.echo("DRY-RUN: " + " ".join(cmd))
-            exported.append(out_path)  # pretend for git staging preview
-        else:
-            try:
-                run(cmd)
-                typer.secho(f"✓ Page {page_idx + 1}: {filename}", fg=typer.colors.GREEN)
-                exported.append(out_path)
-            except FileNotFoundError:
-                typer.secho("Error: 'drawio' CLI not found in PATH.", fg=typer.colors.RED)
-                raise typer.Exit(code=2)
-            except subprocess.CalledProcessError as e:
-                typer.secho(f"Error exporting page {page_idx + 1}: {e}", fg=typer.colors.RED)
-                raise typer.Exit(code=3)
+        print("✓ No changes detected; nothing to export.")
+        return []
 
-    # save manifest (even if nothing exported—keeps filename renames consistent)
-    mf_path = manifest_path(outdir, input_path)
-    if dry_run:
-        typer.echo(f"DRY-RUN: write {mf_path}")
-    else:
-        save_manifest(mf_path, new_manifest)
+    exported: List[Path] = []
+    print(f"Exporting {len(to_export)} page(s) to {output_dir}")
+
+    for page_idx, filename in to_export:
+        output_file = output_dir / filename
+        try:
+            export_svg(input_file, page_idx, output_file)
+            print(f"  ✓ Page {page_idx + 1}: {filename}")
+            exported.append(output_file)
+        except FileNotFoundError:
+            print("Error: 'drawio' CLI not found in PATH.")
+            print("Install from: https://github.com/jgraph/drawio-desktop/releases")
+            sys.exit(2)
+        except subprocess.CalledProcessError as e:
+            print(f"Error exporting page {page_idx + 1}: {e}")
+            sys.exit(3)
+
+    # Save updated manifest
+    save_manifest(manifest_path(input_file), new_manifest)
 
     return exported
 
-# ---------------- CLI ----------------
-@app.command()
-def cli_export(
-    input: str = typer.Argument(..., help="Path to .drawio file"),
-    outdir: Optional[str] = typer.Option(
-        None, "--outdir", "-o",
-        help="Output directory (default: '../figures' next to current working directory)"
-    ),
-    git_message: str = typer.Option("Updated SVGs", "--git-message", "-m", help="Commit message"),
-    push: bool = typer.Option(False, "--push", help="After commit, also push"),
-    remote: str = typer.Option("origin", "--remote", help="Remote to push to"),
-    branch: Optional[str] = typer.Option(None, "--branch", help="Branch to push (default: current)"),
-    no_git: bool = typer.Option(False, "--no-git", help="Do not run git add/commit"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Only print actions without executing"),
-    full: bool = typer.Option(False, "--full", help="Force full export of all pages (ignore manifest)"),
-    clean: bool = typer.Option(True, "--clean/--no-clean", help="Delete stale/renamed SVGs based on manifest"),
-):
-    """
-    Export SVGs (named by tab title) from a .drawio file.
-    Incremental by default: exports only pages whose content or filename changed
-    since the last run (tracked via a manifest). Also commits the exported SVGs AND
-    the .drawio file itself, then optionally pushes.
-    """
-    cwd = os.getcwd()
-    default_outdir = os.path.abspath(os.path.join(cwd, "..", "figures"))
 
-    input_path = os.path.abspath(input)
-    if not os.path.isfile(input_path):
-        typer.secho(f"Error: input file not found: {input_path}", fg=typer.colors.RED)
-        raise typer.Exit(code=1)
+# =============================================================================
+# Git Operations
+# =============================================================================
+def git_pull(repo_root: str) -> None:
+    """Pull latest changes from remote."""
+    branch = current_branch(repo_root)
+    if not branch:
+        print("Warning: Could not determine branch; skipping pull.")
+        return
 
-    outdir = os.path.abspath(outdir or default_outdir)
-    exported = export_pages(input_path, outdir, dry_run=dry_run, full=full, clean=clean)
+    try:
+        print(f"Pulling latest changes from {GIT_REMOTE}/{branch}...")
+        run_cmd(["git", "-C", repo_root, "pull", GIT_REMOTE, branch])
+        print("✓ Pull completed.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: Pull failed: {e}")
+        sys.exit(4)
 
-    if dry_run or no_git:
-        raise typer.Exit()
 
-    repo_root = find_git_root(outdir) or find_git_root(os.path.dirname(input_path))
+def git_commit_and_push(files: List[Path], input_file: Path, repo_root: str) -> None:
+    """Commit and push changes."""
+    if not files:
+        return
+
+    # Convert to relative paths from repo root
+    rel_paths = [str(Path(f).relative_to(repo_root)) for f in files]
+    rel_paths.append(str(input_file.relative_to(repo_root)))
+
+    # Also commit manifest
+    mf = manifest_path(input_file)
+    if mf.is_file():
+        rel_paths.append(str(mf.relative_to(repo_root)))
+
+    # Stage and commit
+    try:
+        run_cmd(["git", "-C", repo_root, "add", "--"] + rel_paths)
+        result = subprocess.run(
+            ["git", "-C", repo_root, "commit", "-m", GIT_COMMIT_MESSAGE],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            print("✓ No changes to commit.")
+            return
+
+        print(f"✓ Committed: {GIT_COMMIT_MESSAGE}")
+
+        # Push
+        branch = current_branch(repo_root)
+        if not branch:
+            print("Warning: Could not determine branch; skipping push.")
+            return
+
+        print(f"Pushing to {GIT_REMOTE}/{branch}...")
+        run_cmd(["git", "-C", repo_root, "push", GIT_REMOTE, branch])
+        print("✓ Push completed.")
+
+    except subprocess.CalledProcessError as e:
+        print(f"Git error: {e}")
+        sys.exit(5)
+
+
+# =============================================================================
+# Main
+# =============================================================================
+def main():
+    if len(sys.argv) < 2:
+        print(__doc__)
+        sys.exit(1)
+
+    # Standard export workflow
+    input_file = Path(sys.argv[1]).absolute()
+    if not input_file.is_file():
+        print(f"Error: File not found: {input_file}")
+        sys.exit(1)
+
+    output_dir = DEFAULT_OUTPUT_DIR
+
+    # Find git repo
+    repo_root = find_git_root(str(output_dir))
     if not repo_root:
-        typer.secho("Not a git repository; skipping commit/push.", fg=typer.colors.YELLOW)
-        raise typer.Exit()
+        print("Warning: Not a git repository; skipping git operations.")
+        exported = do_export(input_file, output_dir)
+        return
 
-    # Pull latest changes first to avoid push conflicts
-    git_pull(repo_root, remote, branch)
+    # Pull, export, commit, push
+    git_pull(repo_root)
+    exported = do_export(input_file, output_dir)
 
-    did_commit = git_add_and_commit(exported, repo_root, git_message, drawio_file=input_path)
-    if did_commit and push:
-        git_push(repo_root, remote, branch)
+    if exported:
+        git_commit_and_push(exported, input_file, repo_root)
+
 
 if __name__ == "__main__":
-    app()
+    main()
