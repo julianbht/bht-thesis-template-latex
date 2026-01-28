@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 # =============================================================================
 # Figure dimensions (matches LaTeX \linewidth of 426.79pt)
 # =============================================================================
-FIGURE_WIDTH = 5.8  # inches (adjusted to fit LaTeX linewidth with margins)
+FIGURE_WIDTH = 5.7  # inches (adjusted to fit LaTeX linewidth with margins)
 
 # =============================================================================
 # Font sizes
