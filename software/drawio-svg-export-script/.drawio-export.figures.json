@@ -1,0 +1,11 @@
+{
+  "input": "/home/jn/dev/bht-thesis-template-latex/software/drawio-svg-export-script/figures.drawio",
+  "outdir": "/home/jn/dev/bht-thesis-template-latex/figures",
+  "pages": {
+    "0": {
+      "filename": "bht-colors.svg",
+      "hash": "0700d098aab81ddf2f0415292c73344bd0a2c8c2"
+    }
+  },
+  "version": 1
+}
