@@ -1,0 +1,68 @@
+\documentclass[11pt,a4paper]{report}
+\input{preamble}
+\input{macros}
+\usepackage{bht-cover-page}
+\usepackage{layout}
+\selectlanguage{ngerman} % or english 
+
+\begin{document}
+
+% Cover
+
+\submissionDate{\today}
+\coverPageLanguage{de}  % or {en}
+\thesisTitle{Vorlage für eine Bachelorarbeit bei Siamak Haschemi an der BHT}
+\thesisSubtitle{Vorlage für eine Bachelorarbeit bei Siamak Haschemi an der BHT}
+\authorName{Max Mustermann}
+% \studentId{123 456}
+\department{VI - Computer Science and Media}
+\degreeType{Bachelor of Science (B. Sc.)}
+\degreeProgram{Medieninformatik}
+\supervisorField{
+  \begin{tabular}{lr}
+    \multicolumn{2}{l}{\textbf{Reviewer}}\\
+    Prof.~Dr.~Siamak Haschemi\\
+    Prof.~Dr.~Maria Musterfrau
+  \end{tabular}
+}
+
+\maketitle
+
+% Abstract
+
+\pagenumbering{roman}
+\include{chapters/00-abstract}
+
+% Table of Contents
+
+\hypertarget{toc}{}     % for "table of content squares"
+\tableofcontents
+
+% Indexes
+
+\EnableTocSquares
+\listoffigures
+\cleardoublepage
+\listoftables
+\cleardoublepage
+
+% Main Content
+
+\pagenumbering{arabic}
+\include{chapters/01-introduction}
+\include{chapters/02-remarks}
+\include{chapters/03- common-questions}
+\include{chapters/04-tips-and-tricks}
+\include{chapters/05-student-messages}
+
+% Appendix
+
+\cleardoublepage
+% \include{chapters/appendix}
+% \cleardoublepage
+
+% Bibliography
+
+\addcontentsline{toc}{chapter}{Literaturverzeichnis}
+\printbibliography
+\end{document}

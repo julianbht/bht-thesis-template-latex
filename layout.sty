@@ -1,0 +1,31 @@
+% copied directly from Tschirley
+% not sure what any of these numbers do
+% but im sure he had some reason for them
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{layout}[page layout]
+
+\makeatletter
+\setlength\paperheight     {297mm}
+\setlength\paperwidth  	   {210mm}
+\setlength\headheight      {2ex}
+\setlength\headsep         {2ex}
+\setlength\footskip        {25\p@}
+\setlength\textwidth       {150mm}
+\setlength\textheight      {245mm}
+\setlength{\@tempdima}     {\paperwidth}
+\addtolength{\@tempdima}   {-2in}
+\addtolength{\@tempdima}   {-\textwidth}
+\setlength\oddsidemargin   {0.5\@tempdima}
+\setlength\evensidemargin  {\oddsidemargin}
+\setlength{\@tempdima}     {\paperheight}
+\addtolength{\@tempdima}   {-3in}
+\addtolength{\@tempdima}   {-\textheight}
+\setlength\topmargin       {.5\@tempdima}
+\setlength\footnotesep     {12\p@}
+\setlength{\skip\footins}  {10\p@ \@plus 2\p@ \@minus 4\p@}
+\setlength{\marginparsep}  {1pt}
+\setlength{\marginparwidth}{20mm}
+\makeatother
+
+\headheight=14pt

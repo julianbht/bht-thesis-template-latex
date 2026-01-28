@@ -1,0 +1,59 @@
+% ---------- Eye candy ToC link ----------
+
+\newcommand{\TocSquaresOverlay}{%
+  \AddToShipoutPictureFG{%  <-- NOTE: no star, persists!
+    \begin{tikzpicture}[remember picture,overlay]
+      \node[anchor=north, yshift=-10mm] at (current page.north) {%
+        \hyperlink{toc}{%
+          \begin{tikzpicture}[x=1mm,y=1mm,baseline]
+            \def\s{3} % square size in mm
+            \def\g{3} % gap in mm
+            \fill[bhtYellow]  (0,0) rectangle ++(\s,\s);
+            \fill[bhtRed]     (\s+\g,0) rectangle ++(\s,\s);
+            \fill[bhtBlue]    (2*\s+2*\g,0) rectangle ++(\s,\s);
+            \fill[bhtCyan]    (3*\s+3*\g,0) rectangle ++(\s,\s);
+          \end{tikzpicture}%
+        }%
+      };
+    \end{tikzpicture}%
+  }%
+}
+
+\newcommand{\EnableTocSquares}{\TocSquaresOverlay}
+\newcommand{\DisableTocSquares}{\ClearShipoutPictureFG}
+
+% ---------- Primary Research Questions ----------
+\newcounter{researchquestioncounter}
+\renewcommand{\theresearchquestioncounter}{RQ\arabic{researchquestioncounter}}
+
+\newcommand{\researchquestion}[2][]{%
+  \refstepcounter{researchquestioncounter}%
+  \par\smallskip
+  (\theresearchquestioncounter)\ %
+  \if\relax\detokenize{#1}\relax\else\label{#1}\fi
+  #2\par
+}
+
+% Prevent cleveref from adding its own "RQ" prefix
+\crefname{researchquestioncounter}{}{}
+\Crefname{researchquestioncounter}{}{}
+
+% ---------- Secondary Research Questions ----------
+\newcounter{secondaryresearchquestioncounter}
+\renewcommand{\thesecondaryresearchquestioncounter}{SRQ\arabic{secondaryresearchquestioncounter}}
+
+\newcommand{\secondaryresearchquestion}[2][]{%
+  \refstepcounter{secondaryresearchquestioncounter}%
+  \par\smallskip
+  (\thesecondaryresearchquestioncounter)\ %
+  \if\relax\detokenize{#1}\relax\else\label{#1}\fi
+  #2\par
+}
+
+% Prevent cleveref from adding its own "SRQ" prefix
+\crefname{secondaryresearchquestioncounter}{}{}
+\Crefname{secondaryresearchquestioncounter}{}{}
+
+
+
+

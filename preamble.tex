@@ -1,0 +1,55 @@
+% Encoding, language, quoting
+
+\usepackage[utf8]{inputenc}      % UTF-8 input encoding
+\usepackage[T1]{fontenc}         % better hyphenation/accents in PDF
+\usepackage[english,ngerman]{babel}  % Language-specific hyphenation/typography
+
+% Figures, graphics, tables
+
+\usepackage{svg}        % Include SVGs (uses Inkscape by default)
+\usepackage{caption}    % Customize figure/table captions
+\usepackage{booktabs}   % Professional-quality tables (\toprule etc.)
+\usepackage{tabularx}   % Tables with automatic column width (X columns)
+\usepackage{float}      % Improved float placement control (e.g., [H])
+\usepackage{tikz}       % Drawing and diagrams
+
+% Paragraph indentation
+
+\setlength{\parskip}{0.8em}     % Space between paragraphs
+\setlength{\parindent}{0pt}     % No paragraph indentation
+
+% Bibliography
+
+\usepackage[
+  backend=biber,
+  style=numeric,
+  sorting=nyt,
+  backref=true,
+  backrefstyle=three
+]{biblatex}
+\usepackage{csquotes}       % needed with biblatex
+
+\DefineBibliographyStrings{english}{
+  backrefpage  = {cited on page},
+  backrefpages = {cited on pages},
+}
+
+\DefineBibliographyStrings{ngerman}{
+  backrefpage  = {zitiert auf Seite},
+  backrefpages = {zitiert auf den Seiten},
+}
+
+\addbibresource{bib/sources.bib}
+
+% PDF/output quality & links
+
+\usepackage{hyperref}
+\hypersetup{hidelinks}
+
+% Other
+\usepackage{cleveref}       % Very useful when referring to stuff
+\usepackage{pdfpages}       % needed for "table of content squares"
+
+% Mute Overleaf warning that has nothing to do with us
+\usepackage{silence}
+\WarningFilter{latex}{Command \showhyphens has changed}
