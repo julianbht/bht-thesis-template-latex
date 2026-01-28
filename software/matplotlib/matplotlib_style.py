@@ -16,13 +16,13 @@ import matplotlib.pyplot as plt
 # =============================================================================
 # Figure dimensions (matches LaTeX \linewidth of 426.79pt)
 # =============================================================================
-FIGURE_WIDTH = 5.7  # inches (adjusted to fit LaTeX linewidth with margins)
+FIGURE_WIDTH = 5.8  # inches (adjusted to fit LaTeX linewidth with margins)
 
 # =============================================================================
 # Font sizes
 # =============================================================================
-FONTSIZE = 9         # Standard size for most text (title, axis labels, ticks, legend)
-FONTSIZE_SMALL = 7   # Smaller annotations (e.g., value labels on bars)
+FONTSIZE = 9  # Standard size for most text (title, axis labels, ticks, legend)
+FONTSIZE_SMALL = 7  # Smaller annotations (e.g., value labels on bars)
 FONTSIZE_XSMALL = 6  # Very small annotations (e.g., dense bar charts)
 
 

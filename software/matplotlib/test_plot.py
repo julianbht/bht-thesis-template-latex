@@ -58,7 +58,7 @@ for bar in bars:
 
 # Styling
 ax.set_ylabel("Performance Score")
-ax.set_title("Sample BHT Thesis Figure")
+ax.set_title("Beispiel")
 ax.set_ylim(0, 35)
 ax.grid(axis="y", alpha=0.3, linestyle="--", linewidth=0.5)
 ax.set_axisbelow(True)
