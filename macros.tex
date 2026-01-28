@@ -1,4 +1,4 @@
-% ---------- Eye candy ToC link ----------
+% ---------- Eye candy table of content link ----------
 
 \newcommand{\TocSquaresOverlay}{%
   \AddToShipoutPictureFG{%  <-- NOTE: no star, persists!
@@ -21,38 +21,6 @@
 
 \newcommand{\EnableTocSquares}{\TocSquaresOverlay}
 \newcommand{\DisableTocSquares}{\ClearShipoutPictureFG}
-
-% ---------- Primary Research Questions ----------
-\newcounter{researchquestioncounter}
-\renewcommand{\theresearchquestioncounter}{RQ\arabic{researchquestioncounter}}
-
-\newcommand{\researchquestion}[2][]{%
-  \refstepcounter{researchquestioncounter}%
-  \par\smallskip
-  (\theresearchquestioncounter)\ %
-  \if\relax\detokenize{#1}\relax\else\label{#1}\fi
-  #2\par
-}
-
-% Prevent cleveref from adding its own "RQ" prefix
-\crefname{researchquestioncounter}{}{}
-\Crefname{researchquestioncounter}{}{}
-
-% ---------- Secondary Research Questions ----------
-\newcounter{secondaryresearchquestioncounter}
-\renewcommand{\thesecondaryresearchquestioncounter}{SRQ\arabic{secondaryresearchquestioncounter}}
-
-\newcommand{\secondaryresearchquestion}[2][]{%
-  \refstepcounter{secondaryresearchquestioncounter}%
-  \par\smallskip
-  (\thesecondaryresearchquestioncounter)\ %
-  \if\relax\detokenize{#1}\relax\else\label{#1}\fi
-  #2\par
-}
-
-% Prevent cleveref from adding its own "SRQ" prefix
-\crefname{secondaryresearchquestioncounter}{}{}
-\Crefname{secondaryresearchquestioncounter}{}{}
 
 
 

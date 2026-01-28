@@ -1,5 +1,15 @@
 \chapter{Tips \& Tricks}
 
+\section{Overleaf Verknüpfung mit Git und GitHub}
+
+Overleaf bietet sowohl eine direkte Git-Integration als auch eine GitHub-Anbindung an.\footnote{\url{https://docs.overleaf.com/integrations-and-add-ons/git-integration-and-github-synchronization/git-integration}} Beide Varianten sind sehr hilfreich im Arbeitsalltag. Leider ist zu beachten, dass diese Integrationen nur mit einer kostenpflichtigen Overleaf-Subscription verfügbar sind.
+
+Mit der Git-Integration kann das Overleaf-Projekt wie ein ganz normales Git-Repository verwendet werden: Änderungen lassen sich lokal bearbeiten und anschließend per \texttt{git pull} und \texttt{git push} synchronisieren. Overleaf übernimmt die Aktualisierung automatisch.
+
+Alternativ kann das Projekt über die Overleaf-Oberfläche mit einem GitHub-Repository verknüpft werden. In diesem Fall erfolgt die Synchronisation über die UI von Overleaf.
+
+Persönlich finde ich die direkte Git-Integration etwas angenehmer, da man sich den zusätzlichen Synchronisationsschritt spart. Man kann einfach lokal committen, pushen, in Overleaf neu laden (F5) und die Änderungen sind sofort sichtbar.
+
 \section{Quellen}
 Lade für alle Quellen, die du findest, immer auch das PDF herunter. So kannst du die Dateien in NotebookLM\footnote{\url{https://notebooklm.google/}} hochladen. Es spart erstaunlich viel Zeit, mit den Quellen „sprechen“ zu können und zum Beispiel schnell herauszufinden, wo man bestimmte Informationen gefunden hat.
 
@@ -7,16 +17,40 @@ Lade für alle Quellen, die du findest, immer auch das PDF herunter. So kannst d
 \subsection{JabRef}
 TODO: Link zu Youtube Video einfügen nachdem Siamak das JabRef Tutorial Video hochgeladen hat. 
 
-\subsection{Grafiken}
-Falls du matplotlib benutzen willst, findest du in \texttt{/software/matplotlib} ein Skript, das Konstanten definiert, die genau auf die Seitenbreite und Schriftgrößen dieses Dokuments abgestimmt sind. Dieses Dokument hat eine Textbreite von \the\linewidth, und das Skript definiert die entsprechende Breite in Inches. \Cref{fig:test_figure} zeigt ein Beispiel.
+\subsection{Matplotlib}
+Falls du matplotlib benutzen willst, findest du in \path{/software/matplotlib} ein Skript, das Konstanten definiert, die genau auf die Seitenbreite und Schriftgrößen dieses Dokuments abgestimmt sind. Dieses Dokument hat eine Textbreite von \the\linewidth, und das Skript definiert die entsprechende Breite in Inches. \Cref{fig:test_figure} zeigt ein Beispiel.
 
 \label{subsec:grafiken}
-  \begin{figure}[htpb]                                       
+  \begin{figure}[H]                                       
       \centering
       \includesvg{figures/test_figure.svg}
       \caption{Beispiel Grafik, mit änlicher Schriftgröße zu dem Text.}
       \label{fig:test_figure}                                     
   \end{figure}        
+
+\subsection{Drawio Export Script}
+
+Falls du draw.io für Diagramme benutzen möchtest, gibt es in \path{/software/drawio-svg-export-script} ein Python-Script, das den Export-Workflow automatisiert. Das Script exportiert jede Seite einer \texttt{.drawio}-Datei als separate SVG-Datei (benannt nach dem Tab-Titel) in den \path{/figures} Ordner.
+
+Das Script arbeitet inkrementell: Es exportiert nur Seiten, deren Inhalt sich geändert hat, und verwaltet dazu ein Manifest im Script-Ordner. Nach dem Export werden die Änderungen automatisch via Git committed und gepusht.
+
+Das Script kann wie folgt benutzt werden:
+\begin{verbatim}
+cd software/drawio-svg-export-script
+python export-drawio-svg.py figures.drawio
+\end{verbatim}
+
+Oder noch kürzer mit dem Makefile:
+\begin{verbatim}
+make svg
+\end{verbatim}
+
+Die Nutzung des Scripts ist optional. Natürlich können SVG-Dateien auch manuell über die draw.io Oberfläche exportiert werden. Das Script dient lediglich dazu, Zeit zu sparen und repetitive Arbeitsschritte wie das Navigieren durch die UI und das anschließende Hochladen der Dateien zu vermeiden.
+
+
+
+
+
 
 
 
