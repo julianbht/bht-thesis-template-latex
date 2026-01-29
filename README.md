@@ -17,7 +17,7 @@ LaTeX template for theses at Berliner Hochschule für Technik (BHT), supervised 
 
 ## Getting Started
 
-1. Clone this repository
+1. Fork this repository
 2. Update the metadata in `main.tex`:
    - `\thesisTitle{}`
    - `\thesisSubtitle{}`
