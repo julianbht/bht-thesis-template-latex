@@ -14,3 +14,4 @@ LaTeX template for theses at Berliner Hochschule für Technik (BHT), supervised 
 - `figures/` - Images and diagrams
 - `cover/` - University logo and cover assets
 - `software/` - Helper scripts
+- `template.pdf/` - PDF generated from this template
