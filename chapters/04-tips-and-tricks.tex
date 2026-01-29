@@ -1,6 +1,7 @@
 \chapter{Tips \& Tricks}
 
 \section{Overleaf Verknüpfung mit Git und GitHub}
+\label{sec:overleaf-git}
 
 Overleaf bietet sowohl eine direkte Git-Integration als auch eine GitHub-Anbindung an.\footnote{\url{https://docs.overleaf.com/integrations-and-add-ons/git-integration-and-github-synchronization/git-integration}} Beide Varianten sind sehr hilfreich im Arbeitsalltag. Leider ist zu beachten, dass diese Integrationen nur mit einer kostenpflichtigen Overleaf-Subscription verfügbar sind.
 
@@ -13,9 +14,24 @@ Persönlich finde ich die direkte Git-Integration etwas angenehmer, da man sich 
 \section{Quellen}
 Lade für alle Quellen, die du findest, immer auch das PDF herunter. So kannst du die Dateien in NotebookLM\footnote{\url{https://notebooklm.google/}} hochladen. Es spart erstaunlich viel Zeit, mit den Quellen „sprechen“ zu können und zum Beispiel schnell herauszufinden, wo man bestimmte Informationen gefunden hat.
 
-\section{Nützliche Software}
+Es empfiehlt sich dringend, ein Quellenverwaltungstool zu verwenden. Im Folgenden werden einige geeignete Tools vorgestellt.
+
 \subsection{JabRef}
-TODO: Link zu Youtube Video einfügen nachdem Siamak das JabRef Tutorial Video hochgeladen hat. 
+JabRef ist ein Java-basiertes Quellenverwaltungsprogramm (optisch etwas rustikal), das direkt mit \texttt{.bib}-Dateien arbeitet, zum Beispiel mit \path{/bib/sources.bib}. Alle Änderungen werden unmittelbar in dieser Datei gespeichert.
+
+Ein kurzes Erklärungsvideo zu JabRef kann man hier finden: \path{https://cloud.bht-berlin.de/index.php/s/Qsmr3fGs6FnSrcm}. 
+TODO: Auf Siamaks YouTube Kanal hochladen und verlinken. 
+
+Da JabRef lokal läuft, müssen Änderungen an der \texttt{.bib}-Datei anschließend nach Overleaf übertragen werden. Dafür bietet sich die Kombination mit der Git-Integration an (siehe \Cref{sec:overleaf-git}). Alternativ bleibt der manuelle Upload der Datei über die Overleaf-Oberfläche.
+
+Theoretisch lässt sich sogar die OpenAI-API per API-key anbinden, um mit den eigenen Quellen zu interagieren. In der Praxis ist es jedoch oft einfacher, die PDFs direkt in NotebookLM zu laden und dort zu benutzen.
+
+\subsection{Zotero}
+Zotero ist ebenfalls ein beliebtes Tool zur Quellenverwaltung. Es bietet offenbar eine direkte Integration mit Overleaf, was es unter Umständen komfortabler als JabRef machen könnte. Bisher hat das jedoch noch niemand ausprobiert. Falls jemand Erfahrungen damit sammelt, wäre es hilfreich, diese hier zu ergänzen.
+
+\section{Nützliche Software}
+
+In diesem Abschnitt stellen wir Software und kleine Hilfstools bereit, die sich beim Schreiben der Arbeit als nützlich erwiesen haben. Oft geht es dabei darum, mit einfachen Automatisierungen Zeit zu sparen oder repetitive Aufgaben zu vermeiden. Falls du selbst etwas in diese Richtung entwickelst, erstelle gerne einen Pull Request, damit auch andere davon profitieren können.
 
 \subsection{Matplotlib}
 Falls du matplotlib benutzen willst, findest du in \path{/software/matplotlib} ein Skript, das Konstanten definiert, die genau auf die Seitenbreite und Schriftgrößen dieses Dokuments abgestimmt sind. Dieses Dokument hat eine Textbreite von \the\linewidth, und das Skript definiert die entsprechende Breite in Inches. \Cref{fig:test_figure} zeigt ein Beispiel.
